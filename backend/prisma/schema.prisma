@@ -1,0 +1,101 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleType {
+  regular
+  cashier
+  manager
+  superuser
+}
+
+enum TransactionType {
+  purchase
+  redemption
+  adjustment
+  event
+  transfer
+}
+
+enum PromotionType {
+  automatic
+  onetime
+}
+
+model User {
+  id            Int         @id @default(autoincrement())
+  utorid        String      @unique
+  email         String      @unique
+  name          String      @default("")
+  birthday      String      @default("")
+  role          RoleType    @default(regular)
+  points        Int         @default(0)
+  createdAt     DateTime    @default(now())
+  lastLogin     DateTime?
+  verified      Boolean     @default(false)
+  avatarUrl     String?
+  promotions    Promotion[] @relation("UserPromotion")
+  unusedPromotions Promotion[] @relation("UserUnusedPromotion")
+  suspicious    Boolean     @default(false)
+  password      String      @default("default")
+  expiresAt     DateTime?
+  resetToken    String?
+  consumedAt    DateTime? 
+  organizers    Event[]     @relation("OrganizerEvent")
+  attend        Event[]     @relation("AttendEvent")
+  creatorTransactions   Transaction[]    @relation("CreatorTransaction")
+  receiverTransactions  Transaction[]    @relation("ReceiverTransaction")
+}
+
+model Transaction {
+  id           Int               @id @default(autoincrement())
+  utorid       String
+  type         TransactionType
+  spent        Float             @default(0)
+  amount       Int
+  earned       Int               @default(0)
+  remark       String            @default("")
+  promotions   Promotion[]       @relation("TransactionPromotion")
+  createdBy    String?
+  processedBy  String?
+  suspicious   Boolean           @default(false)
+  relatedId    Int? 
+  creator      User?              @relation("CreatorTransaction", fields: [createdBy], references: [utorid])
+  receiver     User?              @relation("ReceiverTransaction", fields: [utorid], references: [utorid])
+}
+
+model Event {
+  id            Int           @id @default(autoincrement()) 
+  name          String
+  description   String
+  location      String
+  startTime     DateTime
+  endTime       DateTime
+  capacity      Int? 
+  pointsRemain  Int
+  pointsAwarded Int
+  published     Boolean
+  organizers    User[]        @relation("OrganizerEvent")
+  guests        User[]        @relation("AttendEvent")
+  numGuests     Int
+}
+
+model Promotion {
+  id            Int           @id @default(autoincrement()) 
+  name          String
+  description   String 
+  type          PromotionType
+  startTime     DateTime
+  endTime       DateTime
+  minSpending   Float?
+  rate          Float?
+  points        Int?
+  transactions  Transaction[]  @relation("TransactionPromotion")
+  users         User[]         @relation("UserPromotion")
+  unusedUsers   User[]         @relation("UserUnusedPromotion")
+}
